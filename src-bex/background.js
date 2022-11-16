@@ -1,4 +1,8 @@
 import { bexBackground } from 'quasar/wrappers'
+import { run } from './initialize'
+import {} from './scripts/pageScripts/VideosInformationScript'
+
+run();
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.action.onClicked.addListener((/* tab */) => {
