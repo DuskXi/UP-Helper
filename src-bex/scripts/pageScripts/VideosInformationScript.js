@@ -43,23 +43,30 @@ export function executeScript() {
 
     let result = [];
     docs.forEach(element => {
-      let container = element.querySelector("div.meta-footer.clearfix");
-      let play = chineseToNumber(container.querySelector("div.click.view-stat").querySelector("span").innerHTML);
-      let comment = parseInt(container.querySelector("div.comment.view-stat").querySelector("span").innerHTML);
-      let coin = parseInt(container.querySelector("div.coin.view-stat").querySelector("span").innerHTML);
-      let favorite = parseInt(container.querySelector("div.favorite.view-stat").querySelector("span").innerHTML);
-      let like = parseInt(container.querySelector("div.like.view-stat").querySelector("span").innerHTML);
-      let commentRate = (100 * comment / play).toFixed(2);
-      let coinRate = (100 * coin / play).toFixed(2);
-      let favoriteRate = (100 * favorite / play).toFixed(2);
-      let likeRate = (100 * like / play).toFixed(2);
-      let content = "<br/ >";
-      content += `<div title="评论率" class="view-stat"><i class="bcc-iconfont bcc-icon-icon_commentx"></i><span class="icon-text">${commentRate}%</span></div>`;
-      content += `<div title="投币率" class="view-stat"><i class="bcc-iconfont bcc-icon-icon_action_reward_n_x"></i><span class="icon-text">${coinRate}%</span></div>`;
-      content += `<div title="收藏率" class="view-stat"><i class="bcc-iconfont bcc-icon-icon_action_collection_n_x"></i><span class="icon-text">${favoriteRate}%</span></div>`;
-      content += `<div title="点赞率" class="view-stat"><i class="bcc-iconfont bcc-icon-icon_action_recommend_p_"></i><span class="icon-text">${likeRate}%</span></div>`;
-      container.innerHTML += content;
-      result.push(getInfo(element));
+      try {
+        let container = element.querySelector("div.meta-footer.clearfix");
+        if (container.childNodes.length > 7) {
+          return;
+        }
+        let play = chineseToNumber(container.querySelector("div.click.view-stat").querySelector("span").innerHTML);
+        let comment = parseInt(container.querySelector("div.comment.view-stat").querySelector("span").innerHTML);
+        let coin = parseInt(container.querySelector("div.coin.view-stat").querySelector("span").innerHTML);
+        let favorite = parseInt(container.querySelector("div.favorite.view-stat").querySelector("span").innerHTML);
+        let like = parseInt(container.querySelector("div.like.view-stat").querySelector("span").innerHTML);
+        let commentRate = play === 0 ? 0 : (100 * comment / play).toFixed(2);
+        let coinRate = play === 0 ? 0 : (100 * coin / play).toFixed(2);
+        let favoriteRate = play === 0 ? 0 : (100 * favorite / play).toFixed(2);
+        let likeRate = play === 0 ? 0 : (100 * like / play).toFixed(2);
+        let content = "<br/ >";
+        content += `<div title="评论率" class="view-stat"><i class="bcc-iconfont bcc-icon-icon_commentx"></i><span class="icon-text">${commentRate}%</span></div>`;
+        content += `<div title="投币率" class="view-stat"><i class="bcc-iconfont bcc-icon-icon_action_reward_n_x"></i><span class="icon-text">${coinRate}%</span></div>`;
+        content += `<div title="收藏率" class="view-stat"><i class="bcc-iconfont bcc-icon-icon_action_collection_n_x"></i><span class="icon-text">${favoriteRate}%</span></div>`;
+        content += `<div title="点赞率" class="view-stat"><i class="bcc-iconfont bcc-icon-icon_action_recommend_p_"></i><span class="icon-text">${likeRate}%</span></div>`;
+        container.innerHTML += content;
+        result.push(getInfo(element));
+      } catch (e) {
+
+      }
     });
 
     return result;
@@ -77,9 +84,6 @@ export function executeScript() {
       let element = document.querySelector(key);
       if (element)
         return element;
-      // if (element.querySelector("div.meta-footer.clearfix"))
-      //   if (element.querySelector("div.like.view-stat").querySelector("span").innerHTML)
-      //     return element.querySelector("div.like.view-stat").querySelector("span").innerHTML;
       if (Date.now() - start > timeout)
         return null;
       await sleep(100);
@@ -89,18 +93,62 @@ export function executeScript() {
 
   async function getDiff(videos, videoDetail) {
     let data = [];
+    let detailBuffer = await getDetailBuffer();
+    let tasks = [];
     for (let i = 0; i < videos.length; i++) {
-      let element = videos[i]
-      let response = await fetch(`https://member.bilibili.com/x/web/data/v2/archive/analyze/stat?bvid=${element.dataBV}&t=${new Date().getTime()}`);
-      let json = await response.json();
-      let currentPlay = parseInt(videoDetail.data["arc_audits"].find(item => item["Archive"]["bvid"] === element.BV)["stat"].view);
-      let content = `<div title="今日播放量" class="view-stat"><i class="bcc-iconfont bcc-icon-ic_Playbackx"></i>`
-      content += `<span class="icon-text">今日播放量: ${json.data.stat !== null ? currentPlay - json.data.stat.play : currentPlay}</span></div>`;
-      data.push({BV: element.BV, dataBV: element.dataBV, lastPlay: json.data.stat !== null ? json.data.stat.play : 0, currentPlay: element.play})
-      document.querySelector(`a[href='//www.bilibili.com/video/${element.BV}/']`).parentElement.querySelector("div.meta-footer.clearfix")
-        .innerHTML += content
+      tasks.push((async () => {
+        let element = videos[i]
+        let response = await fetch(`https://member.bilibili.com/x/web/data/v2/archive/analyze/stat?bvid=${element.dataBV}&t=${new Date().getTime()}`);
+        let json = await response.json();
+        let currentPlay = parseInt(videoDetail.data["arc_audits"].find(item => item["Archive"]["bvid"] === element.BV)["stat"].view);
+        let content = `<div title="今日播放量" class="view-stat"><i class="bcc-iconfont bcc-icon-ic_Playbackx"></i>`
+        let playToday = json.data.stat !== null ? currentPlay - json.data.stat.play : currentPlay;
+        let buffered = Object.keys(detailBuffer).includes(element.BV) ? detailBuffer[element.BV] : {playToday: playToday};
+        if (playToday - buffered.playToday < 0) {
+          buffered.playToday = 0;
+        }
+        content += `<span class="icon-text">今日播放量: ${playToday}(+${playToday - buffered.playToday})</span></div>`;
+        data.push({BV: element.BV, dataBV: element.dataBV, lastPlay: json.data.stat !== null ? json.data.stat.play : 0, currentPlay: element.play})
+        document.querySelector(`a[href='//www.bilibili.com/video/${element.BV}/']`).parentElement.querySelector("div.meta-footer.clearfix")
+          .innerHTML += content;
+        return {BV: element.BV, playToday: playToday};
+      })());
+    }
+    let details = await Promise.all(tasks);
+    for (let i = 0; i < details.length; i++) {
+      await updateDetailBuffer(details[i]["BV"], {playToday: details[i]["playToday"]});
     }
     console.log(data)
+  }
+
+  async function queryStorage(key) {
+    return new Promise((resolve, _) => {
+      chrome.storage.local.get(key, result => {
+        resolve(result[key]);
+      });
+    });
+  }
+
+  async function setStorage(key, value) {
+    return new Promise(resolve => {
+      chrome.storage.local.set({[key]: value}, () => {
+        resolve();
+      });
+    });
+  }
+
+  async function getDetailBuffer() {
+    let detail = await queryStorage("videosDetail");
+    if (detail === null) {
+      detail = {};
+    }
+    return detail;
+  }
+
+  async function updateDetailBuffer(bvid, stat) {
+    let detail = await getDetailBuffer();
+    detail[bvid] = stat;
+    await setStorage("videosDetail", detail);
   }
 
   async function main() {
