@@ -41,6 +41,6 @@ export class VideoInformation extends Component {
     chrome.scripting.executeScript({
       target: {tabId: tabId},
       func: executeScript,
-    });
+    }).then(r => null);
   }
 }
