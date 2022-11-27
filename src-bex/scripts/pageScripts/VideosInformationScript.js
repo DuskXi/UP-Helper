@@ -109,8 +109,12 @@ export function executeScript() {
         }
         content += `<span class="icon-text">今日播放量: ${playToday}(+${playToday - buffered.playToday})</span></div>`;
         data.push({BV: element.BV, dataBV: element.dataBV, lastPlay: json.data.stat !== null ? json.data.stat.play : 0, currentPlay: element.play})
-        document.querySelector(`a[href='//www.bilibili.com/video/${element.BV}/']`).parentElement.querySelector("div.meta-footer.clearfix")
-          .innerHTML += content;
+        let base = document.querySelector(`a[href='//www.bilibili.com/video/${element.BV}/']`).parentElement.querySelector("div.meta-footer.clearfix");
+        base.innerHTML += content;
+        let playHTML = `<div title="点赞率" class="view-stat"><i class="bcc-iconfont bcc-icon-ic_Playbackx"></i><span class="icon-text">${currentPlay >= 10000 ? (currentPlay / 10000.0) + " 万" : currentPlay}</span></div>`;
+        let anchorPoint = base.querySelector("br");
+        anchorPoint.insertAdjacentHTML("afterend", playHTML);
+        // base.insertBefore(base.querySelector("div.view-stat"), anchorPoint);
         return {BV: element.BV, playToday: playToday};
       })());
     }
