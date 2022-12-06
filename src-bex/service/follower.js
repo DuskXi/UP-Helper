@@ -33,7 +33,8 @@ class Follower {
     registerMessageListener("isFollower", async (request, sender, sendResponse) => {
       let uid = request.data.uid;
       let isFollower = this.followersUidList.includes(uid);
-      sendResponse({message: "success", data: isFollower});
+      let index = isFollower ? this.followersUidList.indexOf(uid) : -1;
+      sendResponse({message: "success", data: isFollower, index: index});
     });
 
     registerMessageListener("updateFollowers", async (request, sender, sendResponse) => {

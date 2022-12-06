@@ -6,8 +6,7 @@ export function executeScript() {
     let query = {};
     if (url.indexOf("?") !== -1) {
       let str = url.substr(1);
-      if (str.indexOf("#") !== -1)
-        str = str.substr(0, str.indexOf("#"));
+      if (str.indexOf("#") !== -1) str = str.substr(0, str.indexOf("#"));
       const pairs = str.split("&");
       for (let i = 0; i < pairs.length; i++) {
         const pair = pairs[i].split("=");
@@ -38,7 +37,7 @@ export function executeScript() {
     return {BV: BV, dataBV: dataBV, title: title, play: chineseToNumber(play)};
   }
 
-  async function loadVideos() {
+  async function loadVideos(videoDetail) {
     let docs = document.querySelectorAll("div.article-card.clearfix.v2");
 
     let result = [];
@@ -48,11 +47,12 @@ export function executeScript() {
         if (container.childNodes.length > 7) {
           return;
         }
-        let play = chineseToNumber(container.querySelector("div.click.view-stat").querySelector("span").innerHTML);
+        let info = getInfo(element);
+        let play = parseInt(videoDetail.data["arc_audits"].find(item => item["Archive"]["bvid"] === info.BV)["stat"].view);
         let comment = parseInt(container.querySelector("div.comment.view-stat").querySelector("span").innerHTML);
         let coin = parseInt(container.querySelector("div.coin.view-stat").querySelector("span").innerHTML);
         let favorite = parseInt(container.querySelector("div.favorite.view-stat").querySelector("span").innerHTML);
-        let like = parseInt(container.querySelector("div.like.view-stat").querySelector("span").innerHTML);
+        let like = parseInt(videoDetail.data["arc_audits"].find(item => item["Archive"]["bvid"] === info.BV)["stat"]["like"]);
         let commentRate = play === 0 ? 0 : (100 * comment / play).toFixed(2);
         let coinRate = play === 0 ? 0 : (100 * coin / play).toFixed(2);
         let favoriteRate = play === 0 ? 0 : (100 * favorite / play).toFixed(2);
@@ -63,7 +63,7 @@ export function executeScript() {
         content += `<div title="收藏率" class="view-stat"><i class="bcc-iconfont bcc-icon-icon_action_collection_n_x"></i><span class="icon-text">${favoriteRate}%</span></div>`;
         content += `<div title="点赞率" class="view-stat"><i class="bcc-iconfont bcc-icon-icon_action_recommend_p_"></i><span class="icon-text">${likeRate}%</span></div>`;
         container.innerHTML += content;
-        result.push(getInfo(element));
+        result.push(info);
       } catch (e) {
 
       }
@@ -82,10 +82,8 @@ export function executeScript() {
     let start = Date.now();
     while (true) {
       let element = document.querySelector(key);
-      if (element)
-        return element;
-      if (Date.now() - start > timeout)
-        return null;
+      if (element) return element;
+      if (Date.now() - start > timeout) return null;
       await sleep(100);
     }
   }
@@ -111,7 +109,7 @@ export function executeScript() {
         data.push({BV: element.BV, dataBV: element.dataBV, lastPlay: json.data.stat !== null ? json.data.stat.play : 0, currentPlay: element.play})
         let base = document.querySelector(`a[href='//www.bilibili.com/video/${element.BV}/']`).parentElement.querySelector("div.meta-footer.clearfix");
         base.innerHTML += content;
-        let playHTML = `<div title="点赞率" class="view-stat"><i class="bcc-iconfont bcc-icon-ic_Playbackx"></i><span class="icon-text">${currentPlay >= 10000 ? (currentPlay / 10000.0) + " 万" : currentPlay}</span></div>`;
+        let playHTML = `<div title="" class="view-stat"><i class="bcc-iconfont bcc-icon-ic_Playbackx"></i><span class="icon-text">${currentPlay >= 10000 ? (currentPlay / 10000.0) + " 万" : currentPlay}</span></div>`;
         let anchorPoint = base.querySelector("br");
         anchorPoint.insertAdjacentHTML("afterend", playHTML);
         // base.insertBefore(base.querySelector("div.view-stat"), anchorPoint);
@@ -160,8 +158,8 @@ export function executeScript() {
     let videoDetailUrl = `https://member.bilibili.com/x/web/archives?status=is_pubing%2Cpubed%2Cnot_pubed&pn=${page ? page : 1}&ps=10&coop=1&interactive=1`;
     let responseWaiting = fetch(videoDetailUrl);
     await waitLoaded("div.article-card.clearfix.v2");
-    let result = await loadVideos();
     let videoDetail = await (await responseWaiting).json();
+    let result = await loadVideos(videoDetail);
     await getDiff(result, videoDetail);
   }
 

@@ -3,7 +3,7 @@ async function executeScript() {
     return new Promise((resolve, _) => {
       chrome.runtime.sendMessage({message: "isFollower", data: {uid: uid}}, function (response) {
         if (response.message === "success") {
-          resolve(response.data);
+          resolve(response.index);
         }
       });
     });
@@ -24,10 +24,10 @@ async function executeScript() {
   if (userUid !== uid) {
     await updateFollowers();
     let is_follower = await isFollower(uid);
-    if (is_follower) {
+    if (is_follower > -1) {
       console.log('is_follower');
       let container = document.querySelector('div.h-basic').querySelector('div');
-      container.innerHTML += '<div style="display: inline-block; font-size:10px; vertical-align: middle; border-style: solid; border-radius: 4px; border-width: 2px; border-color: rgba(0,0,0,0);background-color: #FFC0CB;"><span style="margin: 2px">粉丝</span></div>'
+      container.innerHTML += `<div style="display: inline-block; font-size:10px; vertical-align: middle; border-style: solid; border-radius: 4px; border-width: 2px; border-color: rgba(0,0,0,0);background-color: #FFC0CB;"><span style="margin: 2px">粉丝 (顺序:${is_follower})</span></div>`;
     }
   }
 }
