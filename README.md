@@ -1,4 +1,4 @@
-# UP Helper (up-helper)
+# UP Helper (up-helper) [![wakatime](https://wakatime.com/badge/user/23381c4b-372b-46eb-b687-994db38af858/project/57e813c9-55a9-429d-b16c-992b3ebf5bed.svg)](https://wakatime.com/badge/user/23381c4b-372b-46eb-b687-994db38af858/project/57e813c9-55a9-429d-b16c-992b3ebf5bed)
 
 Bilibili UP主助手
 
